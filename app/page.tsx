@@ -149,7 +149,8 @@ export default function Home() {
         setScanResult(result);
         
         // If still pending, keep the pendingUrl for another check
-        if (data.status !== 'Pending') {
+        const isPending = data.status.toUpperCase() === 'PENDING';
+        if (!isPending) {
           setPendingUrl('');
         }
       } else {
@@ -183,10 +184,15 @@ export default function Home() {
   };
 
   const getStatusClass = (status: string): string => {
-    if (status === 'SAFE') return 'safe';
-    if (status === 'SUSPICIOUS') return 'suspicious';
-    if (status === 'PENDING' || status === 'Pending') return 'pending';
+    const upperStatus = status.toUpperCase();
+    if (upperStatus === 'SAFE') return 'safe';
+    if (upperStatus === 'SUSPICIOUS') return 'suspicious';
+    if (upperStatus === 'PENDING') return 'pending';
     return 'dangerous';
+  };
+
+  const isPendingStatus = (status: string): boolean => {
+    return status.toUpperCase() === 'PENDING';
   };
 
   return (
@@ -249,7 +255,7 @@ export default function Home() {
           </div>
 
           {/* Pending State - Show Check Results Button */}
-          {(scanResult.status === 'Pending' || scanResult.status === 'PENDING') && (
+          {scanResult && isPendingStatus(scanResult.status) && (
             <>
               {/* Explanation Box */}
               <div className="explanation-box">
@@ -287,7 +293,7 @@ export default function Home() {
           )}
 
           {/* Normal Result State - Show Stats */}
-          {scanResult.status !== 'Pending' && scanResult.status !== 'PENDING' && (
+          {scanResult && !isPendingStatus(scanResult.status) && (
             <>
               {/* Threat Meter */}
               {scanResult.stats && (

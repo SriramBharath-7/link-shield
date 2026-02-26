@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     } else if (suspicious > 0) {
       status = 'SUSPICIOUS';
       color = '#f59e0b';
-      emoji: '⚠️';
+      emoji = '⚠️';
       message = `Warning: ${suspicious} vendor(s) marked this URL as suspicious. Proceed with caution.`;
     } else {
       status = 'SAFE';
