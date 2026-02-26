@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ScanResult {
   status: string;
@@ -22,15 +22,54 @@ export default function Home() {
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
-  const [isHovered, setIsHovered] = useState(false);
+  const [threatScore, setThreatScore] = useState(0);
+  const [loadingText, setLoadingText] = useState('');
 
-  const handleScan =async (e: React.FormEvent) => {
+  const fullLoadingText = 'Scanning security engines';
+
+  // Typing effect for loading
+  useEffect(() => {
+    if (isLoading) {
+      let index = 0;
+      setLoadingText('');
+      const interval = setInterval(() => {
+        if (index < fullLoadingText.length) {
+          setLoadingText(fullLoadingText.substring(0, index + 1));
+          index++;
+        } else {
+          clearInterval(interval);
+        }
+      }, 80);
+      return () => clearInterval(interval);
+    }
+  }, [isLoading]);
+
+  // Animate threat meter
+  useEffect(() => {
+    if (scanResult && scanResult.stats) {
+      const total = scanResult.stats.total;
+      const malicious = scanResult.stats.malicious || 0;
+      const suspicious = scanResult.stats.suspicious || 0;
+      
+      // Calculate threat score (0-100)
+      const score = Math.round(((malicious * 2 + suspicious) / total) * 100);
+      
+      setTimeout(() => {
+        setThreatScore(score);
+      }, 300);
+    } else {
+      setThreatScore(0);
+    }
+  }, [scanResult]);
+
+  const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!url.trim()) return;
 
     setIsLoading(true);
     setScanResult(null);
+    setThreatScore(0);
 
     try {
       const response = await fetch('/api/scan', {
@@ -53,8 +92,8 @@ export default function Home() {
         });
       } else {
         setScanResult({
-          status: 'Error',
-          color: '#ef4444',
+          status: 'ERROR',
+          color: '#ff003c',
           emoji: '❌',
           message: data.message || 'Failed to scan URL',
           url: url,
@@ -63,8 +102,8 @@ export default function Home() {
       }
     } catch (error) {
       setScanResult({
-        status: 'Error',
-        color: '#ef4444',
+        status: 'ERROR',
+        color: '#ff003c',
         emoji: '❌',
         message: 'Network error. Please try again.',
         url: url,
@@ -75,141 +114,144 @@ export default function Home() {
     }
   };
 
+  const getThreatLevel = (score: number): string => {
+    if (score <= 30) return 'safe';
+    if (score <= 70) return 'suspicious';
+    return 'dangerous';
+  };
+
+  const getStatusClass = (status: string): string => {
+    if (status === 'SAFE') return 'safe';
+    if (status === 'SUSPICIOUS') return 'suspicious';
+    return 'dangerous';
+  };
+
   return (
-    <main className="min-h-screen bg-[#0f172a] text-white flex flex-col items-center justify-center p-5 font-['Segoe_UI',_Tahoma,_Geneva,_Verdana,_sans-serif]">
+    <main className="app-container">
       {/* Header */}
-      <div className="text-center mb-10">
-        <h1 className="text-5xl md:text-6xl font-bold mb-3 tracking-tight">
-          🛡️ LinkShield AI
-        </h1>
-        <p className="text-xl text-slate-400 font-light">
-          Scan Before You Click
-        </p>
-      </div>
+      <header className="header">
+        <h1>🛡️ LinkShield AI</h1>
+        <p>Scan Before You Click</p>
+      </header>
 
-      {/* URL Scanner Form */}
-      <form onSubmit={handleScan} className="w-full max-w-2xl flex flex-col gap-4">
-        <input
-          type="text"
-          placeholder="Enter URL to scan (e.g., https://example.com)"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          disabled={isLoading}
-          className="w-full px-5 py-4 text-base bg-slate-800 text-white border-2 border-slate-700 rounded-xl outline-none transition-all duration-300 disabled:opacity-50 focus:border-blue-500 focus:bg-[#0f172a]"
-        />
+      {/* Input Section */}
+      <section className="input-section">
+        <form onSubmit={handleScan}>
+          <input
+            type="text"
+            className="url-input"
+            placeholder="Paste suspicious link here..."
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            disabled={isLoading}
+          />
+          <button
+            type="submit"
+            className="scan-button"
+            disabled={!url.trim() || isLoading}
+          >
+            {isLoading ? '⏳ SCANNING...' : '🔍 SCAN URL'}
+          </button>
+        </form>
+      </section>
 
-        <button
-          type="submit"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          disabled={!url.trim() || isLoading}
-          className={`w-full px-5 py-4 text-lg font-semibold text-white border-none rounded-xl cursor-pointer transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
-            isHovered && url.trim() && !isLoading
-              ? 'bg-blue-700 -translate-y-0.5 shadow-[0_10px_25px_rgba(59,130,246,0.4)]'
-              : 'bg-blue-600 shadow-[0_4px_15px_rgba(59,130,246,0.2)]'
-          }`}
-        >
-          {isLoading ? '🔄 Scanning...' : '🔍 Scan URL'}
-        </button>
-      </form>
-
-      {/* Loading */}
+      {/* Loading Animation */}
       {isLoading && (
-        <div className="mt-8 text-center">
-          <div className="w-12 h-12 border-4 border-slate-800 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400 text-sm">Scanning with VirusTotal API...</p>
-          <p className="text-slate-600 text-xs mt-2">This may take a few seconds</p>
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p className="loading-text">
+            {loadingText}
+            <span className="cursor">▊</span>
+          </p>
+          <p style={{ fontSize: '0.9rem', opacity: 0.6, marginTop: '0.5rem' }}>
+            Analyzing with VirusTotal...
+          </p>
         </div>
       )}
 
       {/* Result Card */}
       {scanResult && !isLoading && (
-        <div
-          className="w-full max-w-2xl mt-8 p-6 bg-slate-800 rounded-2xl animate-slideIn"
-          style={{
-            border: `2px solid ${scanResult.color}`,
-            boxShadow: `0 8px 30px ${scanResult.color}40`
-          }}
-        >
+        <div className="result-card">
           {/* Result Header */}
-          <div className="flex items-center gap-3 mb-5 pb-4 border-b border-slate-700">
-            <span className="text-3xl">{scanResult.emoji}</span>
+          <div className="result-header">
+            <span className="result-icon">{scanResult.emoji}</span>
             <div>
-              <h2 className="text-2xl font-bold m-0" style={{ color: scanResult.color }}>
+              <h2 className={`result-status ${getStatusClass(scanResult.status)}`}>
                 {scanResult.status}
               </h2>
-              <p className="text-slate-400 text-xs mt-1">
-                Scanned on {scanResult.timestamp}
+              <p style={{ fontSize: '0.8rem', opacity: 0.6, margin: '0.3rem 0 0 0' }}>
+                {scanResult.timestamp}
               </p>
             </div>
           </div>
 
-          {/* Message */}
-          <p className="text-slate-300 text-base leading-relaxed mb-4">
-            {scanResult.message}
-          </p>
-
-          {/* Stats Grid */}
+          {/* Threat Meter */}
           {scanResult.stats && (
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-[#0f172a] p-3 rounded-lg text-center">
-                <div className="text-2xl font-bold text-red-500">{scanResult.stats.malicious}</div>
-                <div className="text-[11px] text-slate-400 uppercase tracking-wide">Malicious</div>
+            <div className="threat-meter">
+              <div className="threat-meter-label">
+                <span>THREAT LEVEL</span>
+                <span>{threatScore}%</span>
               </div>
-              <div className="bg-[#0f172a] p-3 rounded-lg text-center">
-                <div className="text-2xl font-bold text-yellow-500">{scanResult.stats.suspicious}</div>
-                <div className="text-[11px] text-slate-400 uppercase tracking-wide">Suspicious</div>
-              </div>
-              <div className="bg-[#0f172a] p-3 rounded-lg text-center">
-                <div className="text-2xl font-bold text-green-500">{scanResult.stats.harmless}</div>
-                <div className="text-[11px] text-slate-400 uppercase tracking-wide">Harmless</div>
-              </div>
-              <div className="bg-[#0f172a] p-3 rounded-lg text-center">
-                <div className="text-2xl font-bold text-slate-500">{scanResult.stats.undetected}</div>
-                <div className="text-[11px] text-slate-400 uppercase tracking-wide">Undetected</div>
+              <div className="threat-meter-bar">
+                <div
+                  className={`threat-meter-fill ${getThreatLevel(threatScore)}`}
+                  style={{ width: `${threatScore}%` }}
+                ></div>
               </div>
             </div>
           )}
 
+          {/* Stats Grid */}
+          {scanResult.stats && (
+            <div className="stats-grid">
+              <div className="stat-item">
+                <div className="stat-value total">{scanResult.stats.total}</div>
+                <div className="stat-label">Engines Scanned</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value malicious">{scanResult.stats.malicious}</div>
+                <div className="stat-label">Malicious</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value suspicious">{scanResult.stats.suspicious}</div>
+                <div className="stat-label">Suspicious</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value clean">{scanResult.stats.harmless}</div>
+                <div className="stat-label">Clean</div>
+              </div>
+            </div>
+          )}
+
+          {/* Explanation Box */}
+          <div className="explanation-box">
+            <p>{scanResult.message}</p>
+          </div>
+
           {/* URL Display */}
-          <div className="bg-[#0f172a] p-3 rounded-lg break-all mb-4">
-            <span className="text-slate-500 text-xs font-semibold uppercase tracking-wide">URL:</span>
-            <p className="text-slate-200 text-sm mt-1">{scanResult.url}</p>
+          <div className="url-display">
+            <div className="url-label">SCANNED URL:</div>
+            <div>{scanResult.url}</div>
           </div>
 
           {/* Scan Again Button */}
           <button
+            className="scan-again-button"
             onClick={() => {
               setScanResult(null);
               setUrl('');
+              setThreatScore(0);
             }}
-            className="w-full p-3 text-sm font-semibold text-slate-400 bg-[#0f172a] border border-slate-700 rounded-lg cursor-pointer transition-all duration-200 hover:bg-slate-800 hover:text-white"
           >
-            🔄 Scan Another URL
+            🔄 SCAN ANOTHER URL
           </button>
         </div>
       )}
 
       {/* Footer */}
-      <p className="mt-10 text-slate-600 text-sm text-center">
-        Powered by VirusTotal API
-      </p>
-
-      <style jsx>{`
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-slideIn {
-          animation: slideIn 0.5s ease-out;
-        }
-      `}</style>
+      <footer className="footer">
+        <p>Powered by VirusTotal API</p>
+      </footer>
     </main>
   );
 }
