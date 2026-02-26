@@ -24,6 +24,7 @@ export default function Home() {
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [threatScore, setThreatScore] = useState(0);
   const [loadingText, setLoadingText] = useState('');
+  const [pendingUrl, setPendingUrl] = useState('');
 
   const fullLoadingText = 'Scanning security engines';
 
@@ -70,6 +71,7 @@ export default function Home() {
     setIsLoading(true);
     setScanResult(null);
     setThreatScore(0);
+    setPendingUrl('');
 
     try {
       const response = await fetch('/api/scan', {
@@ -81,7 +83,7 @@ export default function Home() {
       const data = await response.json();
 
       if (data.success) {
-        setScanResult({
+        const result = {
           status: data.status,
           color: data.color,
           emoji: data.emoji,
@@ -89,7 +91,13 @@ export default function Home() {
           url: data.url,
           timestamp: new Date(data.timestamp).toLocaleString(),
           stats: data.stats
-        });
+        };
+        setScanResult(result);
+        
+        // If status is pending, save the URL for later checks
+        if (data.status === 'Pending') {
+          setPendingUrl(url.trim());
+        }
       } else {
         setScanResult({
           status: 'ERROR',
@@ -114,6 +122,60 @@ export default function Home() {
     }
   };
 
+  const handleCheckResults = async () => {
+    if (!pendingUrl) return;
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: pendingUrl })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        const result = {
+          status: data.status,
+          color: data.color,
+          emoji: data.emoji,
+          message: data.message,
+          url: data.url,
+          timestamp: new Date(data.timestamp).toLocaleString(),
+          stats: data.stats
+        };
+        setScanResult(result);
+        
+        // If still pending, keep the pendingUrl for another check
+        if (data.status !== 'Pending') {
+          setPendingUrl('');
+        }
+      } else {
+        setScanResult({
+          status: 'ERROR',
+          color: '#ff003c',
+          emoji: '❌',
+          message: data.message || 'Failed to check results',
+          url: pendingUrl,
+          timestamp: new Date().toLocaleString()
+        });
+      }
+    } catch (error) {
+      setScanResult({
+        status: 'ERROR',
+        color: '#ff003c',
+        emoji: '❌',
+        message: 'Network error. Please try again.',
+        url: pendingUrl,
+        timestamp: new Date().toLocaleString()
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getThreatLevel = (score: number): string => {
     if (score <= 30) return 'safe';
     if (score <= 70) return 'suspicious';
@@ -123,6 +185,7 @@ export default function Home() {
   const getStatusClass = (status: string): string => {
     if (status === 'SAFE') return 'safe';
     if (status === 'SUSPICIOUS') return 'suspicious';
+    if (status === 'PENDING' || status === 'Pending') return 'pending';
     return 'dangerous';
   };
 
@@ -185,66 +248,110 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Threat Meter */}
-          {scanResult.stats && (
-            <div className="threat-meter">
-              <div className="threat-meter-label">
-                <span>THREAT LEVEL</span>
-                <span>{threatScore}%</span>
+          {/* Pending State - Show Check Results Button */}
+          {(scanResult.status === 'Pending' || scanResult.status === 'PENDING') && (
+            <>
+              {/* Explanation Box */}
+              <div className="explanation-box">
+                <p>{scanResult.message}</p>
+                <p style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.8 }}>
+                  VirusTotal is analyzing this URL across 70+ security engines. 
+                  This usually takes 30-60 seconds.
+                </p>
               </div>
-              <div className="threat-meter-bar">
-                <div
-                  className={`threat-meter-fill ${getThreatLevel(threatScore)}`}
-                  style={{ width: `${threatScore}%` }}
-                ></div>
+
+              {/* URL Display */}
+              <div className="url-display">
+                <div className="url-label">SCANNING URL:</div>
+                <div>{scanResult.url}</div>
               </div>
-            </div>
+
+              {/* Check Results Button */}
+              <button
+                className="scan-button"
+                onClick={handleCheckResults}
+                style={{ marginTop: '1.5rem' }}
+              >
+                🔄 CHECK RESULTS
+              </button>
+
+              <p style={{ 
+                textAlign: 'center', 
+                fontSize: '0.85rem', 
+                opacity: 0.6, 
+                marginTop: '1rem' 
+              }}>
+                Wait at least 30 seconds before checking
+              </p>
+            </>
           )}
 
-          {/* Stats Grid */}
-          {scanResult.stats && (
-            <div className="stats-grid">
-              <div className="stat-item">
-                <div className="stat-value total">{scanResult.stats.total}</div>
-                <div className="stat-label">Engines Scanned</div>
+          {/* Normal Result State - Show Stats */}
+          {scanResult.status !== 'Pending' && scanResult.status !== 'PENDING' && (
+            <>
+              {/* Threat Meter */}
+              {scanResult.stats && (
+                <div className="threat-meter">
+                  <div className="threat-meter-label">
+                    <span>THREAT LEVEL</span>
+                    <span>{threatScore}%</span>
+                  </div>
+                  <div className="threat-meter-bar">
+                    <div
+                      className={`threat-meter-fill ${getThreatLevel(threatScore)}`}
+                      style={{ width: `${threatScore}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Stats Grid */}
+              {scanResult.stats && (
+                <div className="stats-grid">
+                  <div className="stat-item">
+                    <div className="stat-value total">{scanResult.stats.total}</div>
+                    <div className="stat-label">Engines Scanned</div>
+                  </div>
+                  <div className="stat-item">
+                    <div className="stat-value malicious">{scanResult.stats.malicious}</div>
+                    <div className="stat-label">Malicious</div>
+                  </div>
+                  <div className="stat-item">
+                    <div className="stat-value suspicious">{scanResult.stats.suspicious}</div>
+                    <div className="stat-label">Suspicious</div>
+                  </div>
+                  <div className="stat-item">
+                    <div className="stat-value clean">{scanResult.stats.harmless}</div>
+                    <div className="stat-label">Clean</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Explanation Box */}
+              <div className="explanation-box">
+                <p>{scanResult.message}</p>
               </div>
-              <div className="stat-item">
-                <div className="stat-value malicious">{scanResult.stats.malicious}</div>
-                <div className="stat-label">Malicious</div>
+
+              {/* URL Display */}
+              <div className="url-display">
+                <div className="url-label">SCANNED URL:</div>
+                <div>{scanResult.url}</div>
               </div>
-              <div className="stat-item">
-                <div className="stat-value suspicious">{scanResult.stats.suspicious}</div>
-                <div className="stat-label">Suspicious</div>
-              </div>
-              <div className="stat-item">
-                <div className="stat-value clean">{scanResult.stats.harmless}</div>
-                <div className="stat-label">Clean</div>
-              </div>
-            </div>
+
+              {/* Scan Again Button */}
+              <button
+                className="scan-again-button"
+                onClick={() => {
+                  setScanResult(null);
+                  setUrl('');
+                  setThreatScore(0);
+                  setPendingUrl('');
+                }}
+              >
+                🔄 SCAN ANOTHER URL
+              </button>
+            </>
           )}
-
-          {/* Explanation Box */}
-          <div className="explanation-box">
-            <p>{scanResult.message}</p>
-          </div>
-
-          {/* URL Display */}
-          <div className="url-display">
-            <div className="url-label">SCANNED URL:</div>
-            <div>{scanResult.url}</div>
-          </div>
-
-          {/* Scan Again Button */}
-          <button
-            className="scan-again-button"
-            onClick={() => {
-              setScanResult(null);
-              setUrl('');
-              setThreatScore(0);
-            }}
-          >
-            🔄 SCAN ANOTHER URL
-          </button>
         </div>
       )}
 

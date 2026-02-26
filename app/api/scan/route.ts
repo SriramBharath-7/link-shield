@@ -47,10 +47,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: true,
           url: url,
-          status: 'Pending',
+          status: 'PENDING',
           color: '#64748b',
           emoji: '⏳',
-          message: 'Scan submitted. Please try again in a few moments.',
+          message: 'Scan submitted successfully. VirusTotal is analyzing this URL.',
           stats: {
             malicious: 0,
             suspicious: 0,
@@ -77,17 +77,17 @@ export async function POST(request: NextRequest) {
     let status, color, emoji, message;
 
     if (malicious > 0) {
-      status = 'Dangerous';
+      status = 'DANGEROUS';
       color = '#ef4444';
       emoji = '🚨';
       message = `Danger: ${malicious} security vendor(s) flagged this URL as malicious! Do not visit.`;
     } else if (suspicious > 0) {
-      status = 'Suspicious';
+      status = 'SUSPICIOUS';
       color = '#f59e0b';
-      emoji = '⚠️';
+      emoji: '⚠️';
       message = `Warning: ${suspicious} vendor(s) marked this URL as suspicious. Proceed with caution.`;
     } else {
-      status = 'Safe';
+      status = 'SAFE';
       color = '#10b981';
       emoji = '✅';
       message = 'No threats detected. This URL appears to be safe.';

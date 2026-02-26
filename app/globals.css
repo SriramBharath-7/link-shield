@@ -410,6 +410,11 @@ body {
   text-shadow: 0 0 10px rgba(255, 0, 60, 0.6);
 }
 
+.result-status.pending {
+  color: #64748b;
+  text-shadow: 0 0 10px rgba(100, 116, 139, 0.6);
+}
+
 /* Threat Meter */
 .threat-meter {
   margin: 1.5rem 0;
