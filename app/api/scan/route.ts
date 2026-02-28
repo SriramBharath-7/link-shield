@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract individual engine results (top flagged engines)
-    const engineResults = [];
+    const engineResults: any[] = [];
     if (vtData && vtData.last_analysis_results) {
       const analysisResults = vtData.last_analysis_results;
       
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract threat categories/tags
-    const categories = [];
+    const categories: string[] = [];
     if (vtData && vtData.categories) {
       for (const category of Object.values(vtData.categories) as string[]) {
         if (category && !categories.includes(category)) {
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract domain info
-    let domainInfo = {};
+    let domainInfo: any = {};
     if (vtData) {
       const creationDate = vtData.last_submission_date || vtData.first_submission_date;
       const reputation = vtData.reputation;
