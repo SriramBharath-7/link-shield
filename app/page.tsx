@@ -153,11 +153,6 @@ export default function Home() {
     if (!pendingUrl) return;
 
     setIsLoading(true);
-    setLoadingText('⏳ Waiting for analysis to complete...');
-
-    // Wait 30 seconds before checking results
-    await new Promise(resolve => setTimeout(resolve, 30000));
-
     setLoadingText('🔄 Fetching updated results...');
 
     try {
@@ -311,7 +306,7 @@ export default function Home() {
                 <p>{scanResult.message}</p>
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.8 }}>
                   VirusTotal is analyzing this URL across 70+ security engines. 
-                  Click the button below - it will wait 30 seconds then fetch your results.
+                  Wait 30-60 seconds, then click the button below to fetch results.
                 </p>
               </div>
 
@@ -327,7 +322,7 @@ export default function Home() {
                 onClick={handleCheckResults}
                 style={{ marginTop: '1.5rem' }}
               >
-                🔄 CHECK RESULTS (30s wait)
+                🔄 CHECK RESULTS
               </button>
 
               <p style={{ 
@@ -336,7 +331,7 @@ export default function Home() {
                 opacity: 0.6, 
                 marginTop: '1rem' 
               }}>
-                This ensures VirusTotal has enough time to complete the analysis
+                Analysis complete? Click above to fetch your results
               </p>
             </>
           )}
@@ -412,7 +407,7 @@ export default function Home() {
                 )}
 
                 {/* Threat Categories - Only show when threats detected */}
-                {scanResult.categories && scanResult.categories.length > 0 && scanResult.stats?.malicious && scanResult.stats.malicious > 0 && (
+                {scanResult.categories && scanResult.categories.length > 0 && (scanResult.stats?.malicious || 0) > 0 && (
                   <div className="info-section">
                     <h3 className="info-title">🎯 Detected Threat Types</h3>
                     <p className="info-description">
