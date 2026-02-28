@@ -38,7 +38,7 @@ body {
   position: relative;
 }
 
-/* Scattered Circuit Traces - No Complete Frame */
+/* Symmetrical Circuit Grid with Center Vertical Line */
 body::before {
   content: '';
   position: fixed;
@@ -47,19 +47,20 @@ body::before {
   right: 0;
   bottom: 0;
   background: 
-    linear-gradient(90deg, transparent 0%, var(--circuit-dim) 50%, transparent 100%) 0 22%,
-    linear-gradient(90deg, transparent 0%, var(--circuit-dim) 50%, transparent 100%) 0 85%,
-    linear-gradient(0deg, transparent 0%, var(--circuit-dim) 50%, transparent 100%) 15% 0,
-    linear-gradient(0deg, transparent 0%, var(--circuit-dim) 50%, transparent 100%) 78% 0,
+    linear-gradient(90deg, transparent 0%, var(--circuit-dim) 50%, transparent 100%) 0 20%,
+    linear-gradient(90deg, transparent 0%, var(--circuit-dim) 50%, transparent 100%) 0 80%,
+    linear-gradient(0deg, transparent 0%, var(--circuit-dim) 50%, transparent 100%) 30% 0,
+    linear-gradient(0deg, transparent 0%, var(--circuit-dim) 50%, transparent 100%) 50% 0,
+    linear-gradient(0deg, transparent 0%, var(--circuit-dim) 50%, transparent 100%) 70% 0,
     radial-gradient(circle at center, rgba(0, 102, 255, 0.03) 0%, transparent 70%);
-  background-size: 100% 2px, 100% 2px, 2px 100%, 2px 100%, 100% 100%;
+  background-size: 100% 2px, 100% 2px, 2px 100%, 2px 100%, 2px 100%, 100% 100%;
   background-repeat: no-repeat;
   pointer-events: none;
   z-index: 0;
   opacity: 0.6;
 }
 
-/* Scattered Circuit Nodes - Avoiding Box Corners */
+/* Circuit Connection Nodes */
 body::after {
   content: '';
   position: fixed;
@@ -68,12 +69,12 @@ body::after {
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle, var(--circuit-active) 1px, transparent 1px) 15% 22%,
-    radial-gradient(circle, var(--circuit-active) 1px, transparent 1px) 78% 85%,
-    radial-gradient(circle, var(--circuit-dim) 1px, transparent 1px) 45% 22%,
-    radial-gradient(circle, var(--circuit-dim) 1px, transparent 1px) 15% 60%,
-    radial-gradient(circle, var(--circuit-dim) 1px, transparent 1px) 78% 42%,
-    radial-gradient(circle, var(--circuit-active) 1px, transparent 1px) 92% 85%;
+    radial-gradient(circle, var(--circuit-active) 1px, transparent 1px) 30% 20%,
+    radial-gradient(circle, var(--circuit-active) 1px, transparent 1px) 50% 20%,
+    radial-gradient(circle, var(--circuit-active) 1px, transparent 1px) 70% 20%,
+    radial-gradient(circle, var(--circuit-active) 1px, transparent 1px) 30% 80%,
+    radial-gradient(circle, var(--circuit-active) 1px, transparent 1px) 50% 80%,
+    radial-gradient(circle, var(--circuit-active) 1px, transparent 1px) 70% 80%;
   background-size: 3px 3px, 3px 3px, 3px 3px, 3px 3px, 3px 3px, 3px 3px;
   background-repeat: no-repeat;
   pointer-events: none;
