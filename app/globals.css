@@ -1022,30 +1022,157 @@ body::after {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  /* Adjust circuit grid for tablets */
+  body::before {
+    opacity: 0.4;
+  }
+  
+  body::after {
+    opacity: 0.6;
+  }
+  
   .header h1 {
     font-size: 2.5rem;
+    letter-spacing: -1px;
   }
   
   .header p {
-    font-size: 1rem;
-  }
-  
-  .stats-grid {
-    grid-template-columns: 1fr;
+    font-size: 0.9rem;
+    letter-spacing: 1.5px;
   }
   
   .app-container {
-    padding: 1.5rem;
+    padding: 1.5rem 1rem;
+  }
+  
+  .input-section {
+    max-width: 100%;
+  }
+  
+  .url-input {
+    font-size: 0.95rem;
+    padding: 1rem 1.25rem;
+  }
+  
+  .scan-button {
+    font-size: 0.95rem;
+    padding: 1rem;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  
+  .result-card {
+    padding: 1.75rem;
+  }
+  
+  .loading-container {
+    padding: 2rem 1.5rem;
   }
 }
 
 @media (max-width: 480px) {
+  /* Simplify circuit grid for mobile */
+  body::before {
+    background: 
+      linear-gradient(90deg, transparent 0%, var(--circuit-dim) 50%, transparent 100%) 0 30%,
+      linear-gradient(90deg, transparent 0%, var(--circuit-dim) 50%, transparent 100%) 0 70%,
+      linear-gradient(0deg, transparent 0%, var(--circuit-dim) 50%, transparent 100%) 50% 0,
+      radial-gradient(circle at center, rgba(0, 102, 255, 0.03) 0%, transparent 70%);
+    background-size: 100% 2px, 100% 2px, 2px 100%, 100% 100%;
+    opacity: 0.3;
+  }
+  
+  body::after {
+    background: 
+      radial-gradient(circle, var(--circuit-active) 1px, transparent 1px) 50% 30%,
+      radial-gradient(circle, var(--circuit-active) 1px, transparent 1px) 50% 70%;
+    background-size: 3px 3px, 3px 3px;
+    opacity: 0.5;
+  }
+  
+  /* Hide interactive grid on mobile for performance */
+  .grid-reveal {
+    display: none;
+  }
+  
+  .header {
+    margin-bottom: 2.5rem;
+  }
+  
   .header h1 {
     font-size: 2rem;
+    letter-spacing: -0.5px;
+  }
+  
+  .header p {
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+  }
+  
+  .app-container {
+    padding: 1.25rem 0.75rem;
+  }
+  
+  .input-section {
+    margin-bottom: 1.5rem;
+  }
+  
+  .url-input {
+    font-size: 0.9rem;
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+  }
+  
+  .scan-button {
+    font-size: 0.9rem;
+    padding: 0.9rem;
+    letter-spacing: 1px;
+    border-radius: 12px;
   }
   
   .result-card,
   .loading-container {
-    padding: 1.5rem;
+    padding: 1.25rem;
+    border-radius: 16px;
+  }
+  
+  .status-badge {
+    font-size: 0.85rem;
+    padding: 0.6rem 1rem;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .stat-card {
+    padding: 1rem;
+  }
+  
+  .stat-value {
+    font-size: 1.75rem;
+  }
+  
+  .stat-label {
+    font-size: 0.8rem;
+  }
+  
+  .explanation-box {
+    padding: 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .url-display {
+    padding: 1rem;
+    font-size: 0.85rem;
+  }
+  
+  .engine-item {
+    padding: 0.75rem;
+    font-size: 0.85rem;
   }
 }
