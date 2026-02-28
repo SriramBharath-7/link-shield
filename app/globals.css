@@ -59,10 +59,19 @@ body {
     transparent 100%);
   opacity: 0;
   transition: opacity 0.2s ease;
+  visibility: visible;
 }
 
 .grid-reveal.active {
   opacity: 1;
+}
+
+/* Desktop only - hide grid on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .grid-reveal {
+    display: none !important;
+    visibility: hidden !important;
+  }
 }
 
 /* Symmetrical Circuit Grid with Center Cross */
