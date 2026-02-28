@@ -152,75 +152,6 @@ export default function Home() {
     }
   };
 
-  const handleCheckResults = async () => {
-    if (!pendingUrl) return;
-
-    setIsLoading(true);
-
-    try {
-      const response = await fetch('/api/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: pendingUrl })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        const result = {
-          status: data.status,
-          color: data.color,
-          emoji: data.emoji,
-          message: data.message,
-          url: data.url,
-          timestamp: new Date(data.timestamp).toLocaleString(),
-          stats: data.stats,
-          engineResults: data.engineResults || [],
-          categories: data.categories || [],
-          domainInfo: data.domainInfo || {}
-        };
-        setScanResult(result);
-        
-        // If still pending, keep the URL for another check
-        const isPending = data.status.toUpperCase() === 'PENDING';
-        if (!isPending) {
-          setPendingUrl('');
-          setAnalysisId('');
-        } else {
-          setAnalysisId(data.analysisId || '');
-        }
-      } else {
-        setScanResult({
-          status: 'ERROR',
-          color: '#ff003c',
-          emoji: '❌',
-          message: data.message || 'Failed to check results',
-          url: pendingUrl,
-          timestamp: new Date().toLocaleString(),
-          stats: { malicious: 0, suspicious: 0, harmless: 0, undetected: 0, total: 0 },
-          engineResults: [],
-          categories: [],
-          domainInfo: {}
-        });
-      }
-    } catch (error) {
-      setScanResult({
-        status: 'ERROR',
-        color: '#ff003c',
-        emoji: '❌',
-        message: 'Network error. Please try again.',
-        url: pendingUrl,
-        timestamp: new Date().toLocaleString(),
-        stats: { malicious: 0, suspicious: 0, harmless: 0, undetected: 0, total: 0 },
-        engineResults: [],
-        categories: [],
-        domainInfo: {}
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const getThreatLevel = (score: number): string => {
     if (score === 0) return 'safe';
     if (score <= 10) return 'low-risk';
@@ -303,7 +234,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Pending State - Show Check Results Button */}
+          {/* Pending State - Show Instructions */}
           {scanResult && isPendingStatus(scanResult.status) && (
             <>
               {/* Explanation Box */}
@@ -311,7 +242,9 @@ export default function Home() {
                 <p>{scanResult.message}</p>
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.8 }}>
                   VirusTotal is analyzing this URL across 70+ security engines. 
-                  Wait 30-60 seconds, then click the button below to fetch results.
+                </p>
+                <p style={{ marginTop: '1rem', fontSize: '0.95rem', color: '#00d4ff', fontWeight: '500' }}>
+                  📌 Wait 30-60 seconds, then click the "🔍 SCAN URL" button above to fetch your results.
                 </p>
               </div>
 
@@ -320,24 +253,6 @@ export default function Home() {
                 <div className="url-label">SCANNING URL:</div>
                 <div>{scanResult.url}</div>
               </div>
-
-              {/* Check Results Button */}
-              <button
-                className="scan-button"
-                onClick={handleCheckResults}
-                style={{ marginTop: '1.5rem' }}
-              >
-                🔄 CHECK RESULTS
-              </button>
-
-              <p style={{ 
-                textAlign: 'center', 
-                fontSize: '0.85rem', 
-                opacity: 0.6, 
-                marginTop: '1rem' 
-              }}>
-                Analysis complete? Click above to fetch your results
-              </p>
             </>
           )}
 
