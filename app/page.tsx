@@ -412,7 +412,7 @@ export default function Home() {
                 )}
 
                 {/* Threat Categories - Only show when threats detected */}
-                {scanResult.categories && scanResult.categories.length > 0 && scanResult.stats.malicious > 0 && (
+                {scanResult.categories && scanResult.categories.length > 0 && scanResult.stats?.malicious && scanResult.stats.malicious > 0 && (
                   <div className="info-section">
                     <h3 className="info-title">🎯 Detected Threat Types</h3>
                     <p className="info-description">
