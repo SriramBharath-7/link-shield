@@ -38,6 +38,7 @@ export default function Home() {
   const [threatScore, setThreatScore] = useState(0);
   const [loadingText, setLoadingText] = useState('');
   const [pendingUrl, setPendingUrl] = useState('');
+  const [analysisId, setAnalysisId] = useState('');
 
   const fullLoadingText = 'Scanning security engines';
 
@@ -88,6 +89,7 @@ export default function Home() {
     setScanResult(null);
     setThreatScore(0);
     setPendingUrl('');
+    setAnalysisId('');
 
     try {
       const response = await fetch('/api/scan', {
@@ -113,9 +115,10 @@ export default function Home() {
         };
         setScanResult(result);
         
-        // If status is pending, save the URL for later checks
+        // If status is pending, save the URL and analysis ID for later checks
         if (data.status === 'Pending') {
           setPendingUrl(url.trim());
+          setAnalysisId(data.analysisId || '');
         }
       } else {
         setScanResult({
@@ -150,16 +153,16 @@ export default function Home() {
   };
 
   const handleCheckResults = async () => {
-    if (!pendingUrl) return;
+    if (!analysisId) return;
 
     setIsLoading(true);
     setLoadingText('🔄 Fetching updated results...');
 
     try {
-      const response = await fetch('/api/scan', {
+      const response = await fetch('/api/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: pendingUrl })
+        body: JSON.stringify({ analysisId: analysisId })
       });
 
       const data = await response.json();
@@ -170,7 +173,7 @@ export default function Home() {
           color: data.color,
           emoji: data.emoji,
           message: data.message,
-          url: data.url,
+          url: pendingUrl,
           timestamp: new Date(data.timestamp).toLocaleString(),
           stats: data.stats,
           engineResults: data.engineResults || [],
@@ -179,10 +182,11 @@ export default function Home() {
         };
         setScanResult(result);
         
-        // If still pending, keep the pendingUrl for another check
+        // If still pending, keep the IDs for another check
         const isPending = data.status.toUpperCase() === 'PENDING';
         if (!isPending) {
           setPendingUrl('');
+          setAnalysisId('');
         }
       } else {
         setScanResult({

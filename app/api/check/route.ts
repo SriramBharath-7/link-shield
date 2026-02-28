@@ -11,109 +11,93 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { url } = await request.json();
+    const { analysisId } = await request.json();
 
-    if (!url) {
+    if (!analysisId) {
       return NextResponse.json(
-        { success: false, message: 'URL is required' },
+        { success: false, message: 'Analysis ID is required' },
         { status: 400 }
       );
     }
 
-    const urlId = Buffer.from(url).toString('base64').replace(/=/g, '');
-
-    const lookupResponse = await fetch(`https://www.virustotal.com/api/v3/urls/${urlId}`, {
+    // Check analysis status
+    const analysisResponse = await fetch(`https://www.virustotal.com/api/v3/analyses/${analysisId}`, {
       method: 'GET',
       headers: {
         'x-apikey': VIRUSTOTAL_API_KEY
       }
     });
 
-    let stats;
-    let vtData;
-
-    if (lookupResponse.ok) {
-      const data = await lookupResponse.json();
-      vtData = data.data.attributes;
-      stats = vtData.last_analysis_stats;
-    } else if (lookupResponse.status === 404) {
-      const formData = new URLSearchParams();
-      formData.append('url', url);
-
-      const submitResponse = await fetch('https://www.virustotal.com/api/v3/urls', {
-        method: 'POST',
-        headers: {
-          'x-apikey': VIRUSTOTAL_API_KEY,
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: formData
-      });
-
-      if (submitResponse.ok) {
-        const submitData = await submitResponse.json();
-        const analysisId = submitData.data?.id;
-        
-        return NextResponse.json({
-          success: true,
-          url: url,
-          status: 'PENDING',
-          color: '#64748b',
-          emoji: '⏳',
-          message: 'Scan submitted successfully. VirusTotal is analyzing this URL.',
-          analysisId: analysisId,
-          stats: {
-            malicious: 0,
-            suspicious: 0,
-            harmless: 0,
-            undetected: 0,
-            total: 0
-          },
-          timestamp: new Date().toISOString()
-        });
-      } else {
-        throw new Error('Scan submission failed');
-      }
-    } else {
-      throw new Error('Service temporarily unavailable');
+    if (!analysisResponse.ok) {
+      throw new Error('Failed to fetch analysis results');
     }
+
+    const analysisData = await analysisResponse.json();
+    const attributes = analysisData.data.attributes;
+    const status = attributes.status;
+
+    // If still queued or in progress, return pending
+    if (status === 'queued' || status === 'in-progress') {
+      return NextResponse.json({
+        success: true,
+        status: 'PENDING',
+        color: '#64748b',
+        emoji: '⏳',
+        message: 'VirusTotal is still analyzing this URL. Please wait a bit longer.',
+        url: '',
+        analysisId: analysisId,
+        stats: {
+          malicious: 0,
+          suspicious: 0,
+          harmless: 0,
+          undetected: 0,
+          total: 0
+        },
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Analysis complete - get the stats
+    const stats = attributes.stats;
     const malicious = stats.malicious || 0;
     const suspicious = stats.suspicious || 0;
     const harmless = stats.harmless || 0;
     const undetected = stats.undetected || 0;
     const total = malicious + suspicious + harmless + undetected;
 
-    let status, color, emoji, message;
+    let statusText, color, emoji, message;
 
     if (malicious >= 40) {
-      status = 'CRITICAL';
+      statusText = 'CRITICAL';
       color = '#8b0000';
       emoji = '💀';
       message = `CRITICAL THREAT: ${malicious} security vendors flagged this as malicious! This URL is extremely dangerous - DO NOT VISIT!`;
     } else if (malicious >= 20) {
-      status = 'DANGEROUS';
+      statusText = 'DANGEROUS';
       color = '#ef4444';
       emoji = '🚨';
       message = `High Risk: ${malicious} security vendors flagged this as malicious! Do not visit this URL.`;
     } else if (malicious >= 5 || suspicious >= 10) {
-      status = 'SUSPICIOUS';
+      statusText = 'SUSPICIOUS';
       color = '#f59e0b';
       emoji = '🟠';
       message = `Warning: ${malicious} malicious and ${suspicious} suspicious detections. Proceed with extreme caution.`;
     } else if (malicious >= 1 || suspicious >= 1) {
-      status = 'LOW RISK';
+      statusText = 'LOW RISK';
       color = '#fbbf24';
       emoji = '⚠️';
       message = `Low Risk: ${malicious + suspicious} minor detection(s) found. This could be a false positive, but stay cautious.`;
     } else {
-      status = 'SAFE';
+      statusText = 'SAFE';
       color = '#10b981';
       emoji = '✅';
       message = 'No threats detected. This URL appears to be safe.';
     }
 
+    // Get engine results
     const engineResults: any[] = [];
-    if (vtData && vtData.last_analysis_results) {
-      const analysisResults = vtData.last_analysis_results;
+    if (attributes.results) {
+      const analysisResults = attributes.results;
       
       for (const [engine, result] of Object.entries(analysisResults) as [string, any][]) {
         if (result.category === 'malicious' || result.category === 'suspicious') {
@@ -125,6 +109,7 @@ export async function POST(request: NextRequest) {
         }
       }
       
+      // If no threats, show some clean engines
       if (engineResults.length === 0) {
         const cleanEngines = Object.entries(analysisResults)
           .filter(([_, result]: [string, any]) => result.category === 'harmless')
@@ -140,30 +125,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const categories: string[] = [];
-    if (vtData && vtData.categories) {
-      for (const category of Object.values(vtData.categories) as string[]) {
-        if (category && !categories.includes(category)) {
-          categories.push(category);
-        }
-      }
-    }
-
-    let domainInfo: any = {};
-    if (vtData) {
-      const creationDate = vtData.last_submission_date || vtData.first_submission_date;
-      const reputation = vtData.reputation;
-      
-      domainInfo = {
-        age: creationDate ? new Date(creationDate * 1000).toLocaleDateString() : undefined,
-        reputation: reputation || 0
-      };
-    }
-
     return NextResponse.json({
       success: true,
-      url,
-      status,
+      url: '',
+      status: statusText,
       color,
       emoji,
       message,
@@ -175,8 +140,6 @@ export async function POST(request: NextRequest) {
         total
       },
       engineResults: engineResults.slice(0, 10),
-      categories: categories,
-      domainInfo: domainInfo,
       timestamp: new Date().toISOString()
     });
 
@@ -184,7 +147,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        message: 'Unable to scan URL. Please try again later.'
+        message: 'Unable to check analysis results. Please try again later.'
       },
       { status: 500 }
     );
