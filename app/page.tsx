@@ -125,7 +125,7 @@ export default function Home() {
           message: data.message || 'Failed to scan URL',
           url: url,
           timestamp: new Date().toLocaleString(),
-          stats: { malicious: 0, suspicious: 0, harmless: 0, undetected: 0 },
+          stats: { malicious: 0, suspicious: 0, harmless: 0, undetected: 0, total: 0 },
           engineResults: [],
           categories: [],
           domainInfo: {}
@@ -139,7 +139,7 @@ export default function Home() {
         message: 'Network error. Please try again.',
         url: url,
         timestamp: new Date().toLocaleString(),
-        stats: { malicious: 0, suspicious: 0, harmless: 0, undetected: 0 },
+        stats: { malicious: 0, suspicious: 0, harmless: 0, undetected: 0, total: 0 },
         engineResults: [],
         categories: [],
         domainInfo: {}
@@ -197,7 +197,7 @@ export default function Home() {
           message: data.message || 'Failed to check results',
           url: pendingUrl,
           timestamp: new Date().toLocaleString(),
-          stats: { malicious: 0, suspicious: 0, harmless: 0, undetected: 0 },
+          stats: { malicious: 0, suspicious: 0, harmless: 0, undetected: 0, total: 0 },
           engineResults: [],
           categories: [],
           domainInfo: {}
@@ -211,7 +211,7 @@ export default function Home() {
         message: 'Network error. Please try again.',
         url: pendingUrl,
         timestamp: new Date().toLocaleString(),
-        stats: { malicious: 0, suspicious: 0, harmless: 0, undetected: 0 },
+        stats: { malicious: 0, suspicious: 0, harmless: 0, undetected: 0, total: 0 },
         engineResults: [],
         categories: [],
         domainInfo: {}
