@@ -153,16 +153,15 @@ export default function Home() {
   };
 
   const handleCheckResults = async () => {
-    if (!analysisId) return;
+    if (!pendingUrl) return;
 
     setIsLoading(true);
-    setLoadingText('🔄 Fetching updated results...');
 
     try {
-      const response = await fetch('/api/check', {
+      const response = await fetch('/api/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ analysisId: analysisId })
+        body: JSON.stringify({ url: pendingUrl })
       });
 
       const data = await response.json();
@@ -173,7 +172,7 @@ export default function Home() {
           color: data.color,
           emoji: data.emoji,
           message: data.message,
-          url: pendingUrl,
+          url: data.url,
           timestamp: new Date(data.timestamp).toLocaleString(),
           stats: data.stats,
           engineResults: data.engineResults || [],
@@ -182,11 +181,13 @@ export default function Home() {
         };
         setScanResult(result);
         
-        // If still pending, keep the IDs for another check
+        // If still pending, keep the URL for another check
         const isPending = data.status.toUpperCase() === 'PENDING';
         if (!isPending) {
           setPendingUrl('');
           setAnalysisId('');
+        } else {
+          setAnalysisId(data.analysisId || '');
         }
       } else {
         setScanResult({
