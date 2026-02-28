@@ -36,7 +36,6 @@ body {
   line-height: 1.6;
   min-height: 100vh;
   position: relative;
-  perspective: 1000px;
 }
 
 /* Interactive Fine Grid - Invisible Until Cursor Reveals */
@@ -59,16 +58,11 @@ body {
     rgba(0, 0, 0, 0.5) 50%,
     transparent 100%);
   opacity: 0;
-  transition: opacity 0.2s ease, transform 0.3s ease, filter 0.2s ease;
-  filter: brightness(1);
-  transform-style: preserve-3d;
-  transform: translateZ(0) scale(1);
+  transition: opacity 0.2s ease;
 }
 
 .grid-reveal.active {
   opacity: 1;
-  filter: brightness(1.4) drop-shadow(0 0 30px rgba(0, 212, 255, 0.4));
-  transform: translateZ(40px) scale(1.03);
 }
 
 /* Symmetrical Circuit Grid with Center Cross */
