@@ -36,30 +36,30 @@ body {
   line-height: 1.6;
   min-height: 100vh;
   position: relative;
-  /* Fine grid pattern - invisible until cursor reveals */
-  background-image: 
-    linear-gradient(rgba(0, 102, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 102, 255, 0.05) 1px, transparent 1px);
-  background-size: 30px 30px;
-  background-position: 0 0;
 }
 
-/* Interactive Grid Reveal Layer */
-body > .grid-reveal {
+/* Interactive Fine Grid - Invisible Until Cursor Reveals */
+.grid-reveal {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 1;
+  background-image: 
+    linear-gradient(rgba(0, 102, 255, 0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 102, 255, 0.3) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: 0 0;
+  mask-image: radial-gradient(circle 150px at var(--mouse-x, -200px) var(--mouse-y, -200px), 
+    black 0%, 
+    transparent 70%);
+  -webkit-mask-image: radial-gradient(circle 150px at var(--mouse-x, -200px) var(--mouse-y, -200px), 
+    black 0%, 
+    transparent 70%);
   opacity: 0;
-  transition: opacity 0.2s ease;
-  background: 
-    radial-gradient(circle 180px at var(--mouse-x, 50%) var(--mouse-y, 50%), 
-      rgba(0, 212, 255, 0.2) 0%, 
-      transparent 100%);
-  mix-blend-mode: screen;
+  transition: opacity 0.15s ease;
 }
 
-body > .grid-reveal.active {
+.grid-reveal.active {
   opacity: 1;
 }
 
