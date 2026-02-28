@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from 'react';
 
+interface EngineResult {
+  engine: string;
+  result: string;
+  category: string;
+}
+
 interface ScanResult {
   status: string;
   color: string;
@@ -15,6 +21,13 @@ interface ScanResult {
     harmless: number;
     undetected: number;
     total: number;
+  };
+  engineResults?: EngineResult[];
+  categories?: string[];
+  domainInfo?: {
+    age?: string;
+    reputation?: number;
+    registrar?: string;
   };
 }
 
@@ -52,8 +65,11 @@ export default function Home() {
       const malicious = scanResult.stats.malicious || 0;
       const suspicious = scanResult.stats.suspicious || 0;
       
-      // Calculate threat score (0-100)
-      const score = Math.round(((malicious * 2 + suspicious) / total) * 100);
+      // Calculate threat score (0-100) based on detection percentage
+      // Weight malicious detections more heavily
+      const threatCount = (malicious * 2) + suspicious;
+      const maxPossible = total * 2; // Maximum if all were malicious
+      const score = Math.min(100, Math.round((threatCount / maxPossible) * 100));
       
       setTimeout(() => {
         setThreatScore(score);
@@ -90,7 +106,10 @@ export default function Home() {
           message: data.message,
           url: data.url,
           timestamp: new Date(data.timestamp).toLocaleString(),
-          stats: data.stats
+          stats: data.stats,
+          engineResults: data.engineResults || [],
+          categories: data.categories || [],
+          domainInfo: data.domainInfo || {}
         };
         setScanResult(result);
         
@@ -105,7 +124,11 @@ export default function Home() {
           emoji: '❌',
           message: data.message || 'Failed to scan URL',
           url: url,
-          timestamp: new Date().toLocaleString()
+          timestamp: new Date().toLocaleString(),
+          stats: { malicious: 0, suspicious: 0, harmless: 0, undetected: 0 },
+          engineResults: [],
+          categories: [],
+          domainInfo: {}
         });
       }
     } catch (error) {
@@ -115,7 +138,11 @@ export default function Home() {
         emoji: '❌',
         message: 'Network error. Please try again.',
         url: url,
-        timestamp: new Date().toLocaleString()
+        timestamp: new Date().toLocaleString(),
+        stats: { malicious: 0, suspicious: 0, harmless: 0, undetected: 0 },
+        engineResults: [],
+        categories: [],
+        domainInfo: {}
       });
     } finally {
       setIsLoading(false);
@@ -126,6 +153,12 @@ export default function Home() {
     if (!pendingUrl) return;
 
     setIsLoading(true);
+    setLoadingText('⏳ Waiting for analysis to complete...');
+
+    // Wait 30 seconds before checking results
+    await new Promise(resolve => setTimeout(resolve, 30000));
+
+    setLoadingText('🔄 Fetching updated results...');
 
     try {
       const response = await fetch('/api/scan', {
@@ -144,7 +177,10 @@ export default function Home() {
           message: data.message,
           url: data.url,
           timestamp: new Date(data.timestamp).toLocaleString(),
-          stats: data.stats
+          stats: data.stats,
+          engineResults: data.engineResults || [],
+          categories: data.categories || [],
+          domainInfo: data.domainInfo || {}
         };
         setScanResult(result);
         
@@ -160,7 +196,11 @@ export default function Home() {
           emoji: '❌',
           message: data.message || 'Failed to check results',
           url: pendingUrl,
-          timestamp: new Date().toLocaleString()
+          timestamp: new Date().toLocaleString(),
+          stats: { malicious: 0, suspicious: 0, harmless: 0, undetected: 0 },
+          engineResults: [],
+          categories: [],
+          domainInfo: {}
         });
       }
     } catch (error) {
@@ -170,7 +210,11 @@ export default function Home() {
         emoji: '❌',
         message: 'Network error. Please try again.',
         url: pendingUrl,
-        timestamp: new Date().toLocaleString()
+        timestamp: new Date().toLocaleString(),
+        stats: { malicious: 0, suspicious: 0, harmless: 0, undetected: 0 },
+        engineResults: [],
+        categories: [],
+        domainInfo: {}
       });
     } finally {
       setIsLoading(false);
@@ -178,15 +222,20 @@ export default function Home() {
   };
 
   const getThreatLevel = (score: number): string => {
-    if (score <= 30) return 'safe';
-    if (score <= 70) return 'suspicious';
-    return 'dangerous';
+    if (score === 0) return 'safe';
+    if (score <= 10) return 'low-risk';
+    if (score <= 40) return 'suspicious';
+    if (score <= 70) return 'dangerous';
+    return 'critical';
   };
 
   const getStatusClass = (status: string): string => {
     const upperStatus = status.toUpperCase();
     if (upperStatus === 'SAFE') return 'safe';
+    if (upperStatus === 'LOW RISK') return 'low-risk';
     if (upperStatus === 'SUSPICIOUS') return 'suspicious';
+    if (upperStatus === 'DANGEROUS') return 'dangerous';
+    if (upperStatus === 'CRITICAL') return 'critical';
     if (upperStatus === 'PENDING') return 'pending';
     return 'dangerous';
   };
@@ -262,7 +311,7 @@ export default function Home() {
                 <p>{scanResult.message}</p>
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.8 }}>
                   VirusTotal is analyzing this URL across 70+ security engines. 
-                  This usually takes 30-60 seconds.
+                  Click the button below - it will wait 30 seconds then fetch your results.
                 </p>
               </div>
 
@@ -278,7 +327,7 @@ export default function Home() {
                 onClick={handleCheckResults}
                 style={{ marginTop: '1.5rem' }}
               >
-                🔄 CHECK RESULTS
+                🔄 CHECK RESULTS (30s wait)
               </button>
 
               <p style={{ 
@@ -287,7 +336,7 @@ export default function Home() {
                 opacity: 0.6, 
                 marginTop: '1rem' 
               }}>
-                Wait at least 30 seconds before checking
+                This ensures VirusTotal has enough time to complete the analysis
               </p>
             </>
           )}
@@ -336,6 +385,167 @@ export default function Home() {
               {/* Explanation Box */}
               <div className="explanation-box">
                 <p>{scanResult.message}</p>
+              </div>
+
+              {/* Extended Information Grid */}
+              <div className="extended-info-grid">
+                {/* Engine Verdicts */}
+                {scanResult.engineResults && scanResult.engineResults.length > 0 && (
+                  <div className="info-section">
+                    <h3 className="info-title">🛡️ Security Engine Verdicts</h3>
+                    <p className="info-description">
+                      Individual results from top antivirus and security engines
+                    </p>
+                    <div className="engine-list">
+                      {scanResult.engineResults.map((engine, idx) => (
+                        <div key={idx} className={`engine-item ${engine.result.toLowerCase()}`}>
+                          <span className="engine-icon">
+                            {engine.result === 'malicious' ? '🚨' : 
+                             engine.result === 'suspicious' ? '⚠️' : '✅'}
+                          </span>
+                          <span className="engine-name">{engine.engine}</span>
+                          <span className="engine-verdict">{engine.category || engine.result}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Threat Categories - Only show when threats detected */}
+                {scanResult.categories && scanResult.categories.length > 0 && scanResult.stats.malicious > 0 && (
+                  <div className="info-section">
+                    <h3 className="info-title">🎯 Detected Threat Types</h3>
+                    <p className="info-description">
+                      Categories of malicious content found by security engines
+                    </p>
+                    <div className="category-badges">
+                      {scanResult.categories.map((category, idx) => (
+                        <span key={idx} className="category-badge">
+                          {category === 'phishing' ? '🎣' :
+                           category === 'malware' ? '🦠' :
+                           category === 'scam' ? '💰' :
+                           category === 'spam' ? '📧' : '⚠️'} {category}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Safety Tips */}
+                <div className="info-section">
+                  <h3 className="info-title">💡 Safety Tips</h3>
+                  <p className="info-description">
+                    {scanResult.status === 'SAFE' || scanResult.status === 'LOW RISK' 
+                      ? 'Best practices to stay protected online'
+                      : 'Critical safety advice for this threat level'}
+                  </p>
+                  <div className="safety-tips-list">
+                    {scanResult.status === 'CRITICAL' || scanResult.status === 'DANGEROUS' ? (
+                      <>
+                        <div className="safety-tip critical">
+                          <span className="tip-icon">🚫</span>
+                          <div>
+                            <strong>DO NOT VISIT THIS URL</strong>
+                            <p>This link has been flagged as highly malicious by multiple security vendors.</p>
+                          </div>
+                        </div>
+                        <div className="safety-tip">
+                          <span className="tip-icon">🛡️</span>
+                          <div>
+                            <strong>Protect Your Device</strong>
+                            <p>Visiting this URL could result in malware infection, data theft, or financial loss.</p>
+                          </div>
+                        </div>
+                        <div className="safety-tip">
+                          <span className="tip-icon">📞</span>
+                          <div>
+                            <strong>Report It</strong>
+                            <p>If you received this link via email or message, report it as phishing or spam.</p>
+                          </div>
+                        </div>
+                      </>
+                    ) : scanResult.status === 'SUSPICIOUS' ? (
+                      <>
+                        <div className="safety-tip warning">
+                          <span className="tip-icon">⚠️</span>
+                          <div>
+                            <strong>Exercise Caution</strong>
+                            <p>Multiple security engines flagged this URL. Avoid entering personal information.</p>
+                          </div>
+                        </div>
+                        <div className="safety-tip">
+                          <span className="tip-icon">🔒</span>
+                          <div>
+                            <strong>Use Protection</strong>
+                            <p>Only visit with a VPN and updated antivirus if absolutely necessary.</p>
+                          </div>
+                        </div>
+                        <div className="safety-tip">
+                          <span className="tip-icon">🔍</span>
+                          <div>
+                            <strong>Verify Source</strong>
+                            <p>Double-check who sent you this link and if it's legitimate.</p>
+                          </div>
+                        </div>
+                      </>
+                    ) : scanResult.status === 'LOW RISK' ? (
+                      <>
+                        <div className="safety-tip">
+                          <span className="tip-icon">👁️</span>
+                          <div>
+                            <strong>Stay Alert</strong>
+                            <p>Some engines detected minor issues. This could be a false positive.</p>
+                          </div>
+                        </div>
+                        <div className="safety-tip">
+                          <span className="tip-icon">🚪</span>
+                          <div>
+                            <strong>Proceed Carefully</strong>
+                            <p>Avoid downloading files or entering sensitive information until you verify the site.</p>
+                          </div>
+                        </div>
+                        <div className="safety-tip">
+                          <span className="tip-icon">🎯</span>
+                          <div>
+                            <strong>Trust Your Instincts</strong>
+                            <p>If something feels off, it probably is. When in doubt, don't click.</p>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="safety-tip safe">
+                          <span className="tip-icon">✅</span>
+                          <div>
+                            <strong>URL Appears Safe</strong>
+                            <p>No security engines detected threats, but always stay vigilant online.</p>
+                          </div>
+                        </div>
+                        <div className="safety-tip">
+                          <span className="tip-icon">🔑</span>
+                          <div>
+                            <strong>Look for HTTPS</strong>
+                            <p>Always verify the URL starts with "https://" for encrypted connections.</p>
+                          </div>
+                        </div>
+                        <div className="safety-tip">
+                          <span className="tip-icon">📧</span>
+                          <div>
+                            <strong>Beware of Phishing</strong>
+                            <p>Scammers can make fake sites look real. Check the URL carefully for typos.</p>
+                          </div>
+                        </div>
+                        <div className="safety-tip">
+                          <span className="tip-icon">💳</span>
+                          <div>
+                            <strong>Never Share Sensitive Data</strong>
+                            <p>Legitimate sites won't ask for passwords or credit cards via email links.</p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* URL Display */}

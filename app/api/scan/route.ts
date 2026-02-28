@@ -25,10 +25,12 @@ export async function POST(request: NextRequest) {
     });
 
     let stats;
+    let vtData;
 
     if (lookupResponse.ok) {
       const data = await lookupResponse.json();
-      stats = data.data.attributes.last_analysis_stats;
+      vtData = data.data.attributes;
+      stats = vtData.last_analysis_stats;
     } else if (lookupResponse.status === 404) {
       // URL not in database, submit for scanning
       const formData = new URLSearchParams();
@@ -76,21 +78,86 @@ export async function POST(request: NextRequest) {
 
     let status, color, emoji, message;
 
-    if (malicious > 0) {
+    // Threshold-based detection
+    if (malicious >= 40) {
+      status = 'CRITICAL';
+      color = '#8b0000';
+      emoji = '💀';
+      message = `CRITICAL THREAT: ${malicious} security vendors flagged this as malicious! This URL is extremely dangerous - DO NOT VISIT!`;
+    } else if (malicious >= 20) {
       status = 'DANGEROUS';
       color = '#ef4444';
       emoji = '🚨';
-      message = `Danger: ${malicious} security vendor(s) flagged this URL as malicious! Do not visit.`;
-    } else if (suspicious > 0) {
+      message = `High Risk: ${malicious} security vendors flagged this as malicious! Do not visit this URL.`;
+    } else if (malicious >= 5 || suspicious >= 10) {
       status = 'SUSPICIOUS';
       color = '#f59e0b';
+      emoji = '🟠';
+      message = `Warning: ${malicious} malicious and ${suspicious} suspicious detections. Proceed with extreme caution.`;
+    } else if (malicious >= 1 || suspicious >= 1) {
+      status = 'LOW RISK';
+      color = '#fbbf24';
       emoji = '⚠️';
-      message = `Warning: ${suspicious} vendor(s) marked this URL as suspicious. Proceed with caution.`;
+      message = `Low Risk: ${malicious + suspicious} minor detection(s) found. This could be a false positive, but stay cautious.`;
     } else {
       status = 'SAFE';
       color = '#10b981';
       emoji = '✅';
       message = 'No threats detected. This URL appears to be safe.';
+    }
+
+    // Extract individual engine results (top flagged engines)
+    const engineResults = [];
+    if (vtData && vtData.last_analysis_results) {
+      const analysisResults = vtData.last_analysis_results;
+      
+      // Get flagged engines first (malicious/suspicious)
+      for (const [engine, result] of Object.entries(analysisResults)) {
+        if (result.category === 'malicious' || result.category === 'suspicious') {
+          engineResults.push({
+            engine: engine,
+            result: result.result || result.category,
+            category: result.category
+          });
+        }
+      }
+      
+      // If no threats, show some clean engines
+      if (engineResults.length === 0) {
+        const cleanEngines = Object.entries(analysisResults)
+          .filter(([_, result]) => result.category === 'harmless')
+          .slice(0, 5);
+        
+        for (const [engine, result] of cleanEngines) {
+          engineResults.push({
+            engine: engine,
+            result: result.result || 'clean',
+            category: result.category
+          });
+        }
+      }
+    }
+
+    // Extract threat categories/tags
+    const categories = [];
+    if (vtData && vtData.categories) {
+      for (const category of Object.values(vtData.categories)) {
+        if (category && !categories.includes(category)) {
+          categories.push(category);
+        }
+      }
+    }
+
+    // Extract domain info
+    let domainInfo = {};
+    if (vtData) {
+      const creationDate = vtData.last_submission_date || vtData.first_submission_date;
+      const reputation = vtData.reputation;
+      
+      domainInfo = {
+        age: creationDate ? new Date(creationDate * 1000).toLocaleDateString() : undefined,
+        reputation: reputation || 0
+      };
     }
 
     return NextResponse.json({
@@ -107,6 +174,9 @@ export async function POST(request: NextRequest) {
         undetected,
         total
       },
+      engineResults: engineResults.slice(0, 10), // Top 10 engines
+      categories: categories,
+      domainInfo: domainInfo,
       timestamp: new Date().toISOString()
     });
 
