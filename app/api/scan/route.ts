@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       const analysisResults = vtData.last_analysis_results;
       
       // Get flagged engines first (malicious/suspicious)
-      for (const [engine, result] of Object.entries(analysisResults)) {
+      for (const [engine, result] of Object.entries(analysisResults) as [string, any][]) {
         if (result.category === 'malicious' || result.category === 'suspicious') {
           engineResults.push({
             engine: engine,
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       // If no threats, show some clean engines
       if (engineResults.length === 0) {
         const cleanEngines = Object.entries(analysisResults)
-          .filter(([_, result]) => result.category === 'harmless')
+          .filter(([_, result]: [string, any]) => result.category === 'harmless')
           .slice(0, 5);
         
         for (const [engine, result] of cleanEngines) {
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     // Extract threat categories/tags
     const categories = [];
     if (vtData && vtData.categories) {
-      for (const category of Object.values(vtData.categories)) {
+      for (const category of Object.values(vtData.categories) as string[]) {
         if (category && !categories.includes(category)) {
           categories.push(category);
         }
