@@ -36,6 +36,31 @@ body {
   line-height: 1.6;
   min-height: 100vh;
   position: relative;
+  /* Fine grid pattern - invisible until cursor reveals */
+  background-image: 
+    linear-gradient(rgba(0, 102, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 102, 255, 0.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+  background-position: 0 0;
+}
+
+/* Interactive Grid Reveal Layer */
+body > .grid-reveal {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  background: 
+    radial-gradient(circle 180px at var(--mouse-x, 50%) var(--mouse-y, 50%), 
+      rgba(0, 212, 255, 0.2) 0%, 
+      transparent 100%);
+  mix-blend-mode: screen;
+}
+
+body > .grid-reveal.active {
+  opacity: 1;
 }
 
 /* Symmetrical Circuit Grid with Center Cross */
