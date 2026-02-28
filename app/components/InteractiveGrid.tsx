@@ -1,9 +1,25 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function InteractiveGrid() {
+  const [isMobile, setIsMobile] = useState(false);
+  
   useEffect(() => {
+    // Detect mobile/touch device
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768 || 'ontouchstart' in window);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  useEffect(() => {
+    if (isMobile) return;
+    
     let timeoutId: NodeJS.Timeout;
     
     const handleMouseMove = (e: MouseEvent) => {
@@ -32,7 +48,10 @@ export default function InteractiveGrid() {
       window.removeEventListener('mousemove', handleMouseMove);
       clearTimeout(timeoutId);
     };
-  }, []);
+  }, [isMobile]);
+  
+  // Don't render on mobile
+  if (isMobile) return null;
   
   return <div className="grid-reveal" />;
 }
