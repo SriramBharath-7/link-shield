@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const VIRUSTOTAL_API_KEY = process.env.VIRUSTOTAL_API_KEY || '76345dea6ea3eeb3c1dbeeb45fa96b346d4328bdbf4466068cd7d91bccf17ced';
+const VIRUSTOTAL_API_KEY = process.env.VIRUSTOTAL_API_KEY;
 
 export async function POST(request: NextRequest) {
   try {
+    if (!VIRUSTOTAL_API_KEY) {
+      return NextResponse.json(
+        { success: false, message: 'Service configuration error' },
+        { status: 500 }
+      );
+    }
+
     const { url } = await request.json();
 
     if (!url) {
@@ -13,10 +20,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Encode URL for VirusTotal
     const urlId = Buffer.from(url).toString('base64').replace(/=/g, '');
 
-    // Try to get existing scan results
     const lookupResponse = await fetch(`https://www.virustotal.com/api/v3/urls/${urlId}`, {
       method: 'GET',
       headers: {
@@ -32,7 +37,6 @@ export async function POST(request: NextRequest) {
       vtData = data.data.attributes;
       stats = vtData.last_analysis_stats;
     } else if (lookupResponse.status === 404) {
-      // URL not in database, submit for scanning
       const formData = new URLSearchParams();
       formData.append('url', url);
 
@@ -63,13 +67,11 @@ export async function POST(request: NextRequest) {
           timestamp: new Date().toISOString()
         });
       } else {
-        throw new Error('Failed to submit URL');
+        throw new Error('Scan submission failed');
       }
     } else {
-      throw new Error(`VirusTotal API error: ${lookupResponse.status}`);
+      throw new Error('Service temporarily unavailable');
     }
-
-    // Calculate results
     const malicious = stats.malicious || 0;
     const suspicious = stats.suspicious || 0;
     const harmless = stats.harmless || 0;
@@ -78,7 +80,6 @@ export async function POST(request: NextRequest) {
 
     let status, color, emoji, message;
 
-    // Threshold-based detection
     if (malicious >= 40) {
       status = 'CRITICAL';
       color = '#8b0000';
@@ -106,12 +107,10 @@ export async function POST(request: NextRequest) {
       message = 'No threats detected. This URL appears to be safe.';
     }
 
-    // Extract individual engine results (top flagged engines)
     const engineResults: any[] = [];
     if (vtData && vtData.last_analysis_results) {
       const analysisResults = vtData.last_analysis_results;
       
-      // Get flagged engines first (malicious/suspicious)
       for (const [engine, result] of Object.entries(analysisResults) as [string, any][]) {
         if (result.category === 'malicious' || result.category === 'suspicious') {
           engineResults.push({
@@ -122,7 +121,6 @@ export async function POST(request: NextRequest) {
         }
       }
       
-      // If no threats, show some clean engines
       if (engineResults.length === 0) {
         const cleanEngines = Object.entries(analysisResults)
           .filter(([_, result]: [string, any]) => result.category === 'harmless')
@@ -138,7 +136,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Extract threat categories/tags
     const categories: string[] = [];
     if (vtData && vtData.categories) {
       for (const category of Object.values(vtData.categories) as string[]) {
@@ -148,7 +145,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Extract domain info
     let domainInfo: any = {};
     if (vtData) {
       const creationDate = vtData.last_submission_date || vtData.first_submission_date;
@@ -174,18 +170,17 @@ export async function POST(request: NextRequest) {
         undetected,
         total
       },
-      engineResults: engineResults.slice(0, 10), // Top 10 engines
+      engineResults: engineResults.slice(0, 10),
       categories: categories,
       domainInfo: domainInfo,
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
-    console.error('API Error:', error);
     return NextResponse.json(
       {
         success: false,
-        message: error instanceof Error ? error.message : 'Internal server error'
+        message: 'Unable to scan URL. Please try again later.'
       },
       { status: 500 }
     );
