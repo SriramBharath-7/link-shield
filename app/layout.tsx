@@ -17,10 +17,10 @@ export const metadata: Metadata = {
   description: "Scan URLs for threats with 70+ security engines. Detect phishing, malware, and scams instantly.",
   icons: {
     icon: [
-      { url: '/icon.png' },
-      { url: '/icon.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon.png?v=2' },
+      { url: '/icon.png?v=2', sizes: '192x192', type: 'image/png' },
     ],
-    apple: '/icon.png',
+    apple: '/icon.png?v=2',
   },
 };
 
