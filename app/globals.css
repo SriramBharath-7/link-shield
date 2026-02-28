@@ -1036,13 +1036,17 @@ body::after {
     display: none !important;
   }
   
-  /* Adjust circuit grid for tablets */
+  /* Remove all circuit grids on tablets */
   body::before {
-    opacity: 0.4;
+    display: none !important;
   }
   
   body::after {
-    opacity: 0.6;
+    display: none !important;
+  }
+  
+  body {
+    background: #000000 !important;
   }
   
   .header h1 {
@@ -1088,23 +1092,22 @@ body::after {
 }
 
 @media (max-width: 480px) {
-  /* Simplify circuit grid for mobile */
+  /* Remove ALL grids on mobile - pure black background only */
   body::before {
-    background: 
-      linear-gradient(90deg, transparent 0%, var(--circuit-dim) 50%, transparent 100%) 0 30%,
-      linear-gradient(90deg, transparent 0%, var(--circuit-dim) 50%, transparent 100%) 0 70%,
-      linear-gradient(0deg, transparent 0%, var(--circuit-dim) 50%, transparent 100%) 50% 0,
-      radial-gradient(circle at center, rgba(0, 102, 255, 0.03) 0%, transparent 70%);
-    background-size: 100% 2px, 100% 2px, 2px 100%, 100% 100%;
-    opacity: 0.3;
+    display: none !important;
   }
   
   body::after {
-    background: 
-      radial-gradient(circle, var(--circuit-active) 1px, transparent 1px) 50% 30%,
-      radial-gradient(circle, var(--circuit-active) 1px, transparent 1px) 50% 70%;
-    background-size: 3px 3px, 3px 3px;
-    opacity: 0.5;
+    display: none !important;
+  }
+  
+  .grid-reveal {
+    display: none !important;
+  }
+  
+  body {
+    background: #000000 !important;
+    background-image: none !important;
   }
   
   .header {
