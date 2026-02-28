@@ -45,22 +45,26 @@ body {
   pointer-events: none;
   z-index: 1;
   background-image: 
-    linear-gradient(rgba(0, 102, 255, 0.3) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 102, 255, 0.3) 1px, transparent 1px);
+    linear-gradient(rgba(0, 102, 255, 0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 102, 255, 0.4) 1px, transparent 1px);
   background-size: 40px 40px;
   background-position: 0 0;
-  mask-image: radial-gradient(circle 150px at var(--mouse-x, -200px) var(--mouse-y, -200px), 
+  mask-image: radial-gradient(circle 200px at var(--mouse-x, -300px) var(--mouse-y, -300px), 
     black 0%, 
-    transparent 70%);
-  -webkit-mask-image: radial-gradient(circle 150px at var(--mouse-x, -200px) var(--mouse-y, -200px), 
+    rgba(0, 0, 0, 0.6) 40%,
+    transparent 100%);
+  -webkit-mask-image: radial-gradient(circle 200px at var(--mouse-x, -300px) var(--mouse-y, -300px), 
     black 0%, 
-    transparent 70%);
+    rgba(0, 0, 0, 0.6) 40%,
+    transparent 100%);
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, filter 0.2s ease;
+  filter: brightness(1);
 }
 
 .grid-reveal.active {
   opacity: 1;
+  filter: brightness(1.3);
 }
 
 /* Symmetrical Circuit Grid with Center Cross */
