@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
           .filter(([_, result]: [string, any]) => result.category === 'harmless')
           .slice(0, 5);
         
-        for (const [engine, result] of cleanEngines) {
+        for (const [engine, result] of cleanEngines as [string, any][]) {
           engineResults.push({
             engine: engine,
             result: result.result || 'clean',
